@@ -1,6 +1,6 @@
 {
   "name": "@nanostores/async",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Async computed stores for Nano Stores",
   "keywords": [
     "nanostores",
