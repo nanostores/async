@@ -25,7 +25,7 @@
   },
   "types": "./index.d.ts",
   "scripts": {
-    "test": "pnpm run /^test:/",
+    "test": "pnpm run -s /^test:/",
     "test:coverage": "pnpm bnt --coverage",
     "test:lint": "prettier -c .",
     "test:size": "size-limit",
@@ -66,9 +66,7 @@
   "size-limit": [
     {
       "name": "Everything",
-      "import": {
-        "./index.js": "*"
-      },
+      "import": "*",
       "limit": "418 B"
     }
   ]
