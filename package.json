@@ -40,18 +40,18 @@
     "trailingComma": "none"
   },
   "devDependencies": {
-    "@changesets/changelog-github": "^0.6.0",
-    "@changesets/cli": "^2.30.0",
-    "@sinonjs/fake-timers": "^15.1.1",
-    "@size-limit/preset-small-lib": "^12.0.1",
-    "@types/node": "^25.3.5",
+    "@changesets/changelog-github": "^1.0.1",
+    "@changesets/cli": "^3.0.3",
+    "@sinonjs/fake-timers": "^15.4.0",
+    "@size-limit/preset-small-lib": "^14.2.0",
+    "@types/node": "^26.6.5",
     "@types/sinonjs__fake-timers": "^15.0.1",
-    "better-node-test": "^0.8.3",
-    "check-dts": "^0.9.0",
-    "prettier": "^3.8.1",
-    "size-limit": "^12.0.1",
-    "tsx": "^4.21.0",
-    "typescript": "^5.9.3"
+    "better-node-test": "^1.0.0",
+    "check-dts": "^2.0.1",
+    "prettier": "^3.9.10",
+    "size-limit": "^14.2.0",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2"
   },
   "peerDependencies": {
     "nanostores": "^1"
@@ -66,8 +66,10 @@
   "size-limit": [
     {
       "name": "Everything",
-      "import": "*",
-      "limit": "418 B"
+      "import": {
+        "./index.js": "{ computedAsync, computedAsyncNoCascade }"
+      },
+      "limit": "388 B"
     }
   ]
 }
