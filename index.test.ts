@@ -17,7 +17,9 @@ import {
   computedAsyncNoCascade
 } from './index.js'
 
-const clock = FakeTimers.install()
+// Fake only what nanostores' unmount delay uses: faking everything
+// (setImmediate etc.) hides node:test failure diagnostics
+const clock = FakeTimers.install({ toFake: ['setTimeout', 'clearTimeout'] })
 
 let replacer =
   (...args: [string, string]) =>
@@ -34,14 +36,29 @@ test('works with single store', async () => {
   let unsubscribe = $decimal.subscribe(decimalValue => {
     value = decimalValue
   })
-  deepStrictEqual(value, { state: 'loading' })
+  deepStrictEqual(value, { status: 'loading', state: 'loading' })
   await allTasks()
-  deepStrictEqual(value, { changing: false, state: 'ready', value: 10 })
+  deepStrictEqual(value, {
+    changing: false,
+    status: 'ready',
+    state: 'ready',
+    value: 10
+  })
 
   $number.set(2)
-  deepStrictEqual(value, { changing: true, state: 'ready', value: 10 })
+  deepStrictEqual(value, {
+    changing: true,
+    status: 'ready',
+    state: 'ready',
+    value: 10
+  })
   await allTasks()
-  deepStrictEqual(value, { changing: false, state: 'ready', value: 20 })
+  deepStrictEqual(value, {
+    changing: false,
+    status: 'ready',
+    state: 'ready',
+    value: 20
+  })
 
   unsubscribe()
 })
@@ -65,54 +82,54 @@ test('works with multiple stores', async () => {
     values.push(combineValue)
   })
 
-  deepStrictEqual(values, [{ state: 'loading' }])
+  deepStrictEqual(values, [{ status: 'loading', state: 'loading' }])
   deepStrictEqual(renders, 0)
 
   await allTasks()
 
   deepStrictEqual(values, [
-    { state: 'loading' },
-    { changing: false, state: 'ready', value: 'a 0' }
+    { status: 'loading', state: 'loading' },
+    { changing: false, status: 'ready', state: 'ready', value: 'a 0' }
   ])
   deepStrictEqual(renders, 1)
 
   $letter.set({ letter: 'b' })
   deepStrictEqual(values, [
-    { state: 'loading' },
-    { changing: false, state: 'ready', value: 'a 0' },
-    { changing: true, state: 'ready', value: 'a 0' }
+    { status: 'loading', state: 'loading' },
+    { changing: false, status: 'ready', state: 'ready', value: 'a 0' },
+    { changing: true, status: 'ready', state: 'ready', value: 'a 0' }
   ])
   deepStrictEqual(renders, 1)
 
   await allTasks()
 
   deepStrictEqual(values, [
-    { state: 'loading' },
-    { changing: false, state: 'ready', value: 'a 0' },
-    { changing: true, state: 'ready', value: 'a 0' },
-    { changing: false, state: 'ready', value: 'b 0' }
+    { status: 'loading', state: 'loading' },
+    { changing: false, status: 'ready', state: 'ready', value: 'a 0' },
+    { changing: true, status: 'ready', state: 'ready', value: 'a 0' },
+    { changing: false, status: 'ready', state: 'ready', value: 'b 0' }
   ])
   deepStrictEqual(renders, 2)
 
   $number.set({ number: 1 })
   deepStrictEqual(values, [
-    { state: 'loading' },
-    { changing: false, state: 'ready', value: 'a 0' },
-    { changing: true, state: 'ready', value: 'a 0' },
-    { changing: false, state: 'ready', value: 'b 0' },
-    { changing: true, state: 'ready', value: 'b 0' }
+    { status: 'loading', state: 'loading' },
+    { changing: false, status: 'ready', state: 'ready', value: 'a 0' },
+    { changing: true, status: 'ready', state: 'ready', value: 'a 0' },
+    { changing: false, status: 'ready', state: 'ready', value: 'b 0' },
+    { changing: true, status: 'ready', state: 'ready', value: 'b 0' }
   ])
   deepStrictEqual(renders, 2)
 
   await allTasks()
 
   deepStrictEqual(values, [
-    { state: 'loading' },
-    { changing: false, state: 'ready', value: 'a 0' },
-    { changing: true, state: 'ready', value: 'a 0' },
-    { changing: false, state: 'ready', value: 'b 0' },
-    { changing: true, state: 'ready', value: 'b 0' },
-    { changing: false, state: 'ready', value: 'b 1' }
+    { status: 'loading', state: 'loading' },
+    { changing: false, status: 'ready', state: 'ready', value: 'a 0' },
+    { changing: true, status: 'ready', state: 'ready', value: 'a 0' },
+    { changing: false, status: 'ready', state: 'ready', value: 'b 0' },
+    { changing: true, status: 'ready', state: 'ready', value: 'b 0' },
+    { changing: false, status: 'ready', state: 'ready', value: 'b 1' }
   ])
   deepStrictEqual(renders, 3)
 
@@ -133,30 +150,35 @@ test('handles errors as a state', async () => {
     values.push(v)
   })
 
-  deepStrictEqual(values, [{ state: 'loading' }])
+  deepStrictEqual(values, [{ status: 'loading', state: 'loading' }])
 
   await allTasks()
 
   deepStrictEqual(values, [
-    { state: 'loading' },
-    { changing: false, state: 'ready', value: 2 }
+    { status: 'loading', state: 'loading' },
+    { changing: false, status: 'ready', state: 'ready', value: 2 }
   ])
 
   $atom.set(2)
 
   deepStrictEqual(values, [
-    { state: 'loading' },
-    { changing: false, state: 'ready', value: 2 },
-    { changing: true, state: 'ready', value: 2 }
+    { status: 'loading', state: 'loading' },
+    { changing: false, status: 'ready', state: 'ready', value: 2 },
+    { changing: true, status: 'ready', state: 'ready', value: 2 }
   ])
 
   await allTasks()
 
   deepStrictEqual(values, [
-    { state: 'loading' },
-    { changing: false, state: 'ready', value: 2 },
-    { changing: true, state: 'ready', value: 2 },
-    { changing: false, error: new Error('Even number'), state: 'failed' }
+    { status: 'loading', state: 'loading' },
+    { changing: false, status: 'ready', state: 'ready', value: 2 },
+    { changing: true, status: 'ready', state: 'ready', value: 2 },
+    {
+      changing: false,
+      error: new Error('Even number'),
+      status: 'failed',
+      state: 'failed'
+    }
   ])
 
   unsubscribe()
@@ -184,11 +206,13 @@ test('cascade changing state across computed async stores', async () => {
 
   deepStrictEqual($computed1.get(), {
     changing: false,
+    status: 'ready',
     state: 'ready',
     value: 2
   })
   deepStrictEqual($computed2.get(), {
     changing: false,
+    status: 'ready',
     state: 'ready',
     value: 4
   })
@@ -200,11 +224,13 @@ test('cascade changing state across computed async stores', async () => {
 
   deepStrictEqual($computed1.get(), {
     changing: true,
+    status: 'ready',
     state: 'ready',
     value: 2
   })
   deepStrictEqual($computed2.get(), {
     changing: true,
+    status: 'ready',
     state: 'ready',
     value: 4
   })
@@ -216,11 +242,13 @@ test('cascade changing state across computed async stores', async () => {
 
   deepStrictEqual($computed1.get(), {
     changing: false,
+    status: 'ready',
     state: 'ready',
     value: 4
   })
   deepStrictEqual($computed2.get(), {
     changing: false,
+    status: 'ready',
     state: 'ready',
     value: 8
   })
@@ -248,25 +276,30 @@ test('cascade error state across computed async stores', async () => {
   await allTasks()
 
   deepStrictEqual(values, [
-    { state: 'loading' },
-    { changing: false, state: 'ready', value: 4 }
+    { status: 'loading', state: 'loading' },
+    { changing: false, status: 'ready', state: 'ready', value: 4 }
   ])
 
   $atom.set(2)
 
   deepStrictEqual(values, [
-    { state: 'loading' },
-    { changing: false, state: 'ready', value: 4 },
-    { changing: true, state: 'ready', value: 4 }
+    { status: 'loading', state: 'loading' },
+    { changing: false, status: 'ready', state: 'ready', value: 4 },
+    { changing: true, status: 'ready', state: 'ready', value: 4 }
   ])
 
   await allTasks()
 
   deepStrictEqual(values, [
-    { state: 'loading' },
-    { changing: false, state: 'ready', value: 4 },
-    { changing: true, state: 'ready', value: 4 },
-    { changing: false, error: new Error('Even number'), state: 'failed' }
+    { status: 'loading', state: 'loading' },
+    { changing: false, status: 'ready', state: 'ready', value: 4 },
+    { changing: true, status: 'ready', state: 'ready', value: 4 },
+    {
+      changing: false,
+      error: new Error('Even number'),
+      status: 'failed',
+      state: 'failed'
+    }
   ])
 
   unsubscribe()
@@ -294,30 +327,36 @@ test('does not cascade changing state in no cascade mode', async () => {
 
   deepStrictEqual(inputs1, [1])
   deepStrictEqual(inputs2, [
-    { state: 'loading' },
-    { changing: false, state: 'ready', value: 2 }
+    { status: 'loading', state: 'loading' },
+    { changing: false, status: 'ready', state: 'ready', value: 2 }
   ])
   deepStrictEqual(outputs, [
-    { state: 'loading' },
+    { status: 'loading', state: 'loading' },
     {
       changing: false,
+      status: 'ready',
       state: 'ready',
       value: {
+        status: 'loading',
         state: 'loading'
       }
     },
     {
       changing: true,
+      status: 'ready',
       state: 'ready',
       value: {
+        status: 'loading',
         state: 'loading'
       }
     },
     {
       changing: false,
+      status: 'ready',
       state: 'ready',
       value: {
         changing: false,
+        status: 'ready',
         state: 'ready',
         value: 2
       }
@@ -328,39 +367,47 @@ test('does not cascade changing state in no cascade mode', async () => {
 
   deepStrictEqual(inputs1, [1])
   deepStrictEqual(inputs2, [
-    { state: 'loading' },
-    { changing: false, state: 'ready', value: 2 }
+    { status: 'loading', state: 'loading' },
+    { changing: false, status: 'ready', state: 'ready', value: 2 }
   ])
   deepStrictEqual(outputs, [
-    { state: 'loading' },
+    { status: 'loading', state: 'loading' },
     {
       changing: false,
+      status: 'ready',
       state: 'ready',
       value: {
+        status: 'loading',
         state: 'loading'
       }
     },
     {
       changing: true,
+      status: 'ready',
       state: 'ready',
       value: {
+        status: 'loading',
         state: 'loading'
       }
     },
     {
       changing: false,
+      status: 'ready',
       state: 'ready',
       value: {
         changing: false,
+        status: 'ready',
         state: 'ready',
         value: 2
       }
     },
     {
       changing: true,
+      status: 'ready',
       state: 'ready',
       value: {
         changing: false,
+        status: 'ready',
         state: 'ready',
         value: 2
       }
@@ -371,68 +418,82 @@ test('does not cascade changing state in no cascade mode', async () => {
 
   deepStrictEqual(inputs1, [1, 2])
   deepStrictEqual(inputs2, [
-    { state: 'loading' },
-    { changing: false, state: 'ready', value: 2 },
-    { changing: true, state: 'ready', value: 2 },
-    { changing: false, state: 'ready', value: 4 }
+    { status: 'loading', state: 'loading' },
+    { changing: false, status: 'ready', state: 'ready', value: 2 },
+    { changing: true, status: 'ready', state: 'ready', value: 2 },
+    { changing: false, status: 'ready', state: 'ready', value: 4 }
   ])
   deepStrictEqual(outputs, [
-    { state: 'loading' },
+    { status: 'loading', state: 'loading' },
     {
       changing: false,
+      status: 'ready',
       state: 'ready',
       value: {
+        status: 'loading',
         state: 'loading'
       }
     },
     {
       changing: true,
+      status: 'ready',
       state: 'ready',
       value: {
+        status: 'loading',
         state: 'loading'
       }
     },
     {
       changing: false,
+      status: 'ready',
       state: 'ready',
       value: {
         changing: false,
+        status: 'ready',
         state: 'ready',
         value: 2
       }
     },
     {
       changing: true,
+      status: 'ready',
       state: 'ready',
       value: {
         changing: false,
+        status: 'ready',
         state: 'ready',
         value: 2
       }
     },
     {
       changing: false,
+      status: 'ready',
       state: 'ready',
       value: {
         changing: true,
+        status: 'ready',
         state: 'ready',
         value: 2
       }
     },
     {
       changing: true,
+      status: 'ready',
       state: 'ready',
       value: {
         changing: true,
+        status: 'ready',
         state: 'ready',
         value: 2
       }
     },
     {
       changing: false,
+      status: 'ready',
       state: 'ready',
       value: {
         changing: false,
+        status: 'ready',
         state: 'ready',
         value: 4
       }
@@ -462,32 +523,32 @@ test('prevents diamond dependency problem 1', async () => {
     values.push(v)
   })
 
-  deepStrictEqual(values, [{ state: 'loading' }])
+  deepStrictEqual(values, [{ status: 'loading', state: 'loading' }])
 
   await allTasks()
   deepStrictEqual(values, [
-    { state: 'loading' },
-    { changing: false, state: 'ready', value: 'b0c0d0' }
+    { status: 'loading', state: 'loading' },
+    { changing: false, status: 'ready', state: 'ready', value: 'b0c0d0' }
   ])
 
   $store.set(1)
   $store.set(2)
 
   deepStrictEqual(values, [
-    { state: 'loading' },
-    { changing: false, state: 'ready', value: 'b0c0d0' },
-    { changing: true, state: 'ready', value: 'b0c0d0' }
+    { status: 'loading', state: 'loading' },
+    { changing: false, status: 'ready', state: 'ready', value: 'b0c0d0' },
+    { changing: true, status: 'ready', state: 'ready', value: 'b0c0d0' }
   ])
 
   await allTasks()
 
   deepStrictEqual(renders, 2)
   deepStrictEqual(values, [
-    { state: 'loading' },
-    { changing: false, state: 'ready', value: 'b0c0d0' },
-    { changing: true, state: 'ready', value: 'b0c0d0' },
+    { status: 'loading', state: 'loading' },
+    { changing: false, status: 'ready', state: 'ready', value: 'b0c0d0' },
+    { changing: true, status: 'ready', state: 'ready', value: 'b0c0d0' },
     // Intermediary states (1) are never observed
-    { changing: false, state: 'ready', value: 'b2c2d2' }
+    { changing: false, status: 'ready', state: 'ready', value: 'b2c2d2' }
   ])
 
   unsubscribe()
@@ -509,30 +570,30 @@ test('prevents diamond dependency problem 2', async () => {
     values.push(v)
   })
 
-  deepStrictEqual(values, [{ state: 'loading' }])
+  deepStrictEqual(values, [{ status: 'loading', state: 'loading' }])
 
   await allTasks()
 
   deepStrictEqual(values, [
-    { state: 'loading' },
-    { changing: false, state: 'ready', value: 'a0e0' }
+    { status: 'loading', state: 'loading' },
+    { changing: false, status: 'ready', state: 'ready', value: 'a0e0' }
   ])
 
   $store.set(1)
 
   deepStrictEqual(values, [
-    { state: 'loading' },
-    { changing: false, state: 'ready', value: 'a0e0' },
-    { changing: true, state: 'ready', value: 'a0e0' }
+    { status: 'loading', state: 'loading' },
+    { changing: false, status: 'ready', state: 'ready', value: 'a0e0' },
+    { changing: true, status: 'ready', state: 'ready', value: 'a0e0' }
   ])
 
   await allTasks()
 
   deepStrictEqual(values, [
-    { state: 'loading' },
-    { changing: false, state: 'ready', value: 'a0e0' },
-    { changing: true, state: 'ready', value: 'a0e0' },
-    { changing: false, state: 'ready', value: 'a1e1' }
+    { status: 'loading', state: 'loading' },
+    { changing: false, status: 'ready', state: 'ready', value: 'a0e0' },
+    { changing: true, status: 'ready', state: 'ready', value: 'a0e0' },
+    { changing: false, status: 'ready', state: 'ready', value: 'a1e1' }
   ])
 
   unsubscribe()
@@ -556,30 +617,30 @@ test('prevents diamond dependency problem 3', async () => {
     values.push(v)
   })
 
-  deepStrictEqual(values, [{ state: 'loading' }])
+  deepStrictEqual(values, [{ status: 'loading', state: 'loading' }])
 
   await allTasks()
 
   deepStrictEqual(values, [
-    { state: 'loading' },
-    { changing: false, state: 'ready', value: 'a0b0c0d0' }
+    { status: 'loading', state: 'loading' },
+    { changing: false, status: 'ready', state: 'ready', value: 'a0b0c0d0' }
   ])
 
   $store.set(1)
 
   deepStrictEqual(values, [
-    { state: 'loading' },
-    { changing: false, state: 'ready', value: 'a0b0c0d0' },
-    { changing: true, state: 'ready', value: 'a0b0c0d0' }
+    { status: 'loading', state: 'loading' },
+    { changing: false, status: 'ready', state: 'ready', value: 'a0b0c0d0' },
+    { changing: true, status: 'ready', state: 'ready', value: 'a0b0c0d0' }
   ])
 
   await allTasks()
 
   deepStrictEqual(values, [
-    { state: 'loading' },
-    { changing: false, state: 'ready', value: 'a0b0c0d0' },
-    { changing: true, state: 'ready', value: 'a0b0c0d0' },
-    { changing: false, state: 'ready', value: 'a1b1c1d1' }
+    { status: 'loading', state: 'loading' },
+    { changing: false, status: 'ready', state: 'ready', value: 'a0b0c0d0' },
+    { changing: true, status: 'ready', state: 'ready', value: 'a0b0c0d0' },
+    { changing: false, status: 'ready', state: 'ready', value: 'a1b1c1d1' }
   ])
 
   unsubscribe()
@@ -618,40 +679,73 @@ test('prevents diamond dependency problem 4 (complex)', async () => {
     values.push(v)
   })
 
-  deepStrictEqual(values, [{ state: 'loading' }, { state: 'loading' }])
+  deepStrictEqual(values, [
+    { status: 'loading', state: 'loading' },
+    { status: 'loading', state: 'loading' }
+  ])
 
   await allTasks()
 
   deepStrictEqual(values, [
-    { state: 'loading' },
-    { state: 'loading' },
-    { changing: false, state: 'ready', value: 'eca0b0da0' },
-    { changing: false, state: 'ready', value: 'eca0b0da0gfeca0b0da0' }
+    { status: 'loading', state: 'loading' },
+    { status: 'loading', state: 'loading' },
+    { changing: false, status: 'ready', state: 'ready', value: 'eca0b0da0' },
+    {
+      changing: false,
+      status: 'ready',
+      state: 'ready',
+      value: 'eca0b0da0gfeca0b0da0'
+    }
   ])
 
   $store1.set(1)
   $store2.set(2)
 
   deepStrictEqual(values, [
-    { state: 'loading' },
-    { state: 'loading' },
-    { changing: false, state: 'ready', value: 'eca0b0da0' },
-    { changing: false, state: 'ready', value: 'eca0b0da0gfeca0b0da0' },
-    { changing: true, state: 'ready', value: 'eca0b0da0' },
-    { changing: true, state: 'ready', value: 'eca0b0da0gfeca0b0da0' }
+    { status: 'loading', state: 'loading' },
+    { status: 'loading', state: 'loading' },
+    { changing: false, status: 'ready', state: 'ready', value: 'eca0b0da0' },
+    {
+      changing: false,
+      status: 'ready',
+      state: 'ready',
+      value: 'eca0b0da0gfeca0b0da0'
+    },
+    { changing: true, status: 'ready', state: 'ready', value: 'eca0b0da0' },
+    {
+      changing: true,
+      status: 'ready',
+      state: 'ready',
+      value: 'eca0b0da0gfeca0b0da0'
+    }
   ])
 
   await allTasks()
 
   deepStrictEqual(values, [
-    { state: 'loading' },
-    { state: 'loading' },
-    { changing: false, state: 'ready', value: 'eca0b0da0' },
-    { changing: false, state: 'ready', value: 'eca0b0da0gfeca0b0da0' },
-    { changing: true, state: 'ready', value: 'eca0b0da0' },
-    { changing: true, state: 'ready', value: 'eca0b0da0gfeca0b0da0' },
-    { changing: false, state: 'ready', value: 'eca1b2da1' },
-    { changing: false, state: 'ready', value: 'eca1b2da1gfeca1b2da1' }
+    { status: 'loading', state: 'loading' },
+    { status: 'loading', state: 'loading' },
+    { changing: false, status: 'ready', state: 'ready', value: 'eca0b0da0' },
+    {
+      changing: false,
+      status: 'ready',
+      state: 'ready',
+      value: 'eca0b0da0gfeca0b0da0'
+    },
+    { changing: true, status: 'ready', state: 'ready', value: 'eca0b0da0' },
+    {
+      changing: true,
+      status: 'ready',
+      state: 'ready',
+      value: 'eca0b0da0gfeca0b0da0'
+    },
+    { changing: false, status: 'ready', state: 'ready', value: 'eca1b2da1' },
+    {
+      changing: false,
+      status: 'ready',
+      state: 'ready',
+      value: 'eca1b2da1gfeca1b2da1'
+    }
   ])
 
   unsubscribe1()
@@ -686,6 +780,7 @@ test('prevents diamond dependency problem 5', async () => {
 
   deepStrictEqual($displayName.get(), {
     changing: false,
+    status: 'ready',
     state: 'ready',
     value: 'John Doe'
   })
@@ -698,6 +793,7 @@ test('prevents diamond dependency problem 5', async () => {
 
   deepStrictEqual($displayName.get(), {
     changing: false,
+    status: 'ready',
     state: 'ready',
     value: 'Benedict Doe'
   })
@@ -709,6 +805,7 @@ test('prevents diamond dependency problem 5', async () => {
 
   deepStrictEqual($displayName.get(), {
     changing: false,
+    status: 'ready',
     state: 'ready',
     value: 'Montgomery'
   })
@@ -730,30 +827,30 @@ test('prevents diamond dependency problem 6', async () => {
     values.push(v)
   })
 
-  deepStrictEqual(values, [{ state: 'loading' }])
+  deepStrictEqual(values, [{ status: 'loading', state: 'loading' }])
 
   await allTasks()
 
   deepStrictEqual(values, [
-    { state: 'loading' },
-    { changing: false, state: 'ready', value: 'a0c0' }
+    { status: 'loading', state: 'loading' },
+    { changing: false, status: 'ready', state: 'ready', value: 'a0c0' }
   ])
 
   $store1.set(1)
 
   deepStrictEqual(values, [
-    { state: 'loading' },
-    { changing: false, state: 'ready', value: 'a0c0' },
-    { changing: true, state: 'ready', value: 'a0c0' }
+    { status: 'loading', state: 'loading' },
+    { changing: false, status: 'ready', state: 'ready', value: 'a0c0' },
+    { changing: true, status: 'ready', state: 'ready', value: 'a0c0' }
   ])
 
   await allTasks()
 
   deepStrictEqual(values, [
-    { state: 'loading' },
-    { changing: false, state: 'ready', value: 'a0c0' },
-    { changing: true, state: 'ready', value: 'a0c0' },
-    { changing: false, state: 'ready', value: 'a1c0' }
+    { status: 'loading', state: 'loading' },
+    { changing: false, status: 'ready', state: 'ready', value: 'a0c0' },
+    { changing: true, status: 'ready', state: 'ready', value: 'a0c0' },
+    { changing: false, status: 'ready', state: 'ready', value: 'a1c0' }
   ])
 
   unsubscribe()
@@ -768,30 +865,42 @@ test('prevents dependency listeners from being out of order', async () => {
     return `${a}b`
   })
 
-  deepStrictEqual($b.get(), { state: 'loading' })
+  deepStrictEqual($b.get(), { status: 'loading', state: 'loading' })
 
   await allTasks()
 
-  deepStrictEqual($b.get(), { changing: false, state: 'ready', value: '0ab' })
+  deepStrictEqual($b.get(), {
+    changing: false,
+    status: 'ready',
+    state: 'ready',
+    value: '0ab'
+  })
 
   let values: AsyncValue<string>[] = []
   let unsubscribe = $b.subscribe(b => values.push(b))
-  deepStrictEqual(values, [{ changing: false, state: 'ready', value: '0ab' }])
+  deepStrictEqual(values, [
+    { changing: false, status: 'ready', state: 'ready', value: '0ab' }
+  ])
 
   clock.tick(STORE_UNMOUNT_DELAY * 2)
-  deepStrictEqual($a.get(), { changing: false, state: 'ready', value: '0a' })
+  deepStrictEqual($a.get(), {
+    changing: false,
+    status: 'ready',
+    state: 'ready',
+    value: '0a'
+  })
   $base.set(1)
   deepStrictEqual(values, [
-    { changing: false, state: 'ready', value: '0ab' },
-    { changing: true, state: 'ready', value: '0ab' }
+    { changing: false, status: 'ready', state: 'ready', value: '0ab' },
+    { changing: true, status: 'ready', state: 'ready', value: '0ab' }
   ])
 
   await allTasks()
 
   deepStrictEqual(values, [
-    { changing: false, state: 'ready', value: '0ab' },
-    { changing: true, state: 'ready', value: '0ab' },
-    { changing: false, state: 'ready', value: '1ab' }
+    { changing: false, status: 'ready', state: 'ready', value: '0ab' },
+    { changing: true, status: 'ready', state: 'ready', value: '0ab' },
+    { changing: false, status: 'ready', state: 'ready', value: '1ab' }
   ])
 
   unsubscribe()
@@ -821,47 +930,76 @@ test('notifies when stores change within the same notifyId', async () => {
     }
   })
 
-  deepStrictEqual(events, [{ val: 1 }, { computed2: { state: 'loading' } }])
+  deepStrictEqual(events, [
+    { val: 1 },
+    { computed2: { status: 'loading', state: 'loading' } }
+  ])
 
   await allTasks()
 
   deepStrictEqual(events, [
     { val: 1 },
-    { computed2: { state: 'loading' } },
-    { computed2: { changing: false, state: 'ready', value: 1 } },
+    { computed2: { status: 'loading', state: 'loading' } },
+    {
+      computed2: { changing: false, status: 'ready', state: 'ready', value: 1 }
+    },
     { val: 2 },
-    { computed2: { changing: true, state: 'ready', value: 1 } },
-    { computed2: { changing: false, state: 'ready', value: 2 } }
+    {
+      computed2: { changing: true, status: 'ready', state: 'ready', value: 1 }
+    },
+    {
+      computed2: { changing: false, status: 'ready', state: 'ready', value: 2 }
+    }
   ])
 
   $val.set(3)
 
   deepStrictEqual(events, [
     { val: 1 },
-    { computed2: { state: 'loading' } },
-    { computed2: { changing: false, state: 'ready', value: 1 } },
+    { computed2: { status: 'loading', state: 'loading' } },
+    {
+      computed2: { changing: false, status: 'ready', state: 'ready', value: 1 }
+    },
     { val: 2 },
-    { computed2: { changing: true, state: 'ready', value: 1 } },
-    { computed2: { changing: false, state: 'ready', value: 2 } },
+    {
+      computed2: { changing: true, status: 'ready', state: 'ready', value: 1 }
+    },
+    {
+      computed2: { changing: false, status: 'ready', state: 'ready', value: 2 }
+    },
     { val: 3 },
-    { computed2: { changing: true, state: 'ready', value: 2 } }
+    { computed2: { changing: true, status: 'ready', state: 'ready', value: 2 } }
   ])
 
   await allTasks()
 
   deepStrictEqual(events, [
     { val: 1 },
-    { computed2: { state: 'loading' } },
-    { computed2: { changing: false, state: 'ready', value: 1 } },
+    { computed2: { status: 'loading', state: 'loading' } },
+    {
+      computed2: { changing: false, status: 'ready', state: 'ready', value: 1 }
+    },
     { val: 2 },
-    { computed2: { changing: true, state: 'ready', value: 1 } },
-    { computed2: { changing: false, state: 'ready', value: 2 } },
+    {
+      computed2: { changing: true, status: 'ready', state: 'ready', value: 1 }
+    },
+    {
+      computed2: { changing: false, status: 'ready', state: 'ready', value: 2 }
+    },
     { val: 3 },
-    { computed2: { changing: true, state: 'ready', value: 2 } },
-    { computed2: { changing: false, state: 'ready', value: 3 } },
+    {
+      computed2: { changing: true, status: 'ready', state: 'ready', value: 2 }
+    },
+    {
+      computed2: { changing: false, status: 'ready', state: 'ready', value: 3 }
+    },
     { val: 4 },
-    { computed2: { changing: true, state: 'ready', value: 3 } },
-    { computed2: { changing: false, state: 'ready', value: 4 } }
+    {
+      computed2: { changing: true, status: 'ready', state: 'ready', value: 3 }
+    },
+    {
+      computed2: { changing: false, status: 'ready', state: 'ready', value: 4 }
+    }
   ])
 })
 
@@ -913,10 +1051,11 @@ test('computes initial value when argument is undefined', async () => {
   let $one = atom<string | undefined>(undefined)
   let $two = computedAsync($one, (value: string | undefined) => !!value)
   equal($one.get(), undefined)
-  deepStrictEqual($two.get(), { state: 'loading' })
+  deepStrictEqual($two.get(), { status: 'loading', state: 'loading' })
   await allTasks()
   deepStrictEqual($two.get(), {
     changing: false,
+    status: 'ready',
     state: 'ready',
     value: false
   })
@@ -940,8 +1079,8 @@ test('skip stale callback calls', async () => {
 
   equal(calls, 1)
   deepStrictEqual(values, [
-    { state: 'loading' },
-    { changing: false, state: 'ready', value: '1' }
+    { status: 'loading', state: 'loading' },
+    { changing: false, status: 'ready', state: 'ready', value: '1' }
   ])
 
   st1.set('2')
@@ -950,19 +1089,19 @@ test('skip stale callback calls', async () => {
 
   equal(calls, 1)
   deepStrictEqual(values, [
-    { state: 'loading' },
-    { changing: false, state: 'ready', value: '1' },
-    { changing: true, state: 'ready', value: '1' }
+    { status: 'loading', state: 'loading' },
+    { changing: false, status: 'ready', state: 'ready', value: '1' },
+    { changing: true, status: 'ready', state: 'ready', value: '1' }
   ])
 
   await allTasks()
 
   equal(calls, 2)
   deepStrictEqual(values, [
-    { state: 'loading' },
-    { changing: false, state: 'ready', value: '1' },
-    { changing: true, state: 'ready', value: '1' },
-    { changing: false, state: 'ready', value: '4' }
+    { status: 'loading', state: 'loading' },
+    { changing: false, status: 'ready', state: 'ready', value: '1' },
+    { changing: true, status: 'ready', state: 'ready', value: '1' },
+    { changing: false, status: 'ready', state: 'ready', value: '4' }
   ])
 })
 
@@ -997,7 +1136,7 @@ test('changing computed in other computed', async () => {
   $atom.set(2)
   await allTasks()
   deepStrictEqual(values, [
-    { state: 'loading' },
-    { changing: true, state: 'ready', value: 2 }
+    { status: 'loading', state: 'loading' },
+    { changing: true, status: 'ready', state: 'ready', value: 2 }
   ])
 })

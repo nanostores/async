@@ -1,9 +1,25 @@
 import type { ReadableAtom, AnyStore, Store, StoreValue } from 'nanostores'
 
 export type AsyncValue<T> =
-  | { changing: boolean; error: unknown; state: 'failed' }
-  | { changing: boolean; state: 'ready'; value: T }
-  | { state: 'loading' }
+  | {
+      changing: boolean
+      error: unknown
+      status: 'failed'
+      /** @deprecated use `status` */
+      state: 'failed'
+    }
+  | {
+      changing: boolean
+      status: 'ready'
+      /** @deprecated use `status` */
+      state: 'ready'
+      value: T
+    }
+  | {
+      status: 'loading'
+      /** @deprecated use `status` */
+      state: 'loading'
+    }
 
 export type AsyncComputedStore<Value> = {
   readonly async: true

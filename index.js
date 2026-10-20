@@ -4,7 +4,7 @@ import { atom, onMount, task } from 'nanostores'
 let computedAsyncStore = (stores, cb, cascade) => {
   if (!Array.isArray(stores)) stores = [stores]
 
-  let $computed = atom({ state: 'loading' })
+  let $computed = atom({ status: 'loading', state: 'loading' })
 
   let lastArgs
   let load = () => {
@@ -12,7 +12,7 @@ let computedAsyncStore = (stores, cb, cascade) => {
     if (!lastArgs || args.some((arg, i) => arg !== lastArgs[i])) {
       lastArgs = args
       let current = $computed.get()
-      if (current.state !== 'loading' && !current.changing) {
+      if (current.status !== 'loading' && !current.changing) {
         // If the state is already 'loading' or 'changing', leave it as is
         // so it doesn't trigger downstream updates unnecessarily.
         $computed.set({ ...current, changing: true })
@@ -22,22 +22,23 @@ let computedAsyncStore = (stores, cb, cascade) => {
         // Cascading mutates the array in place
         inputs = [...args]
         for (let i = 0; i < inputs.length; i++) {
-          if (inputs[i]?.state === 'loading' || inputs[i]?.changing) {
+          if (inputs[i]?.status === 'loading' || inputs[i]?.changing) {
             // Do not start loading if any of the input stores are async and
             // currently loading or changing. This prevents recomputing async values
             // in intermediary states.
             return
           }
-          if (inputs[i]?.state === 'failed') {
+          if (inputs[i]?.status === 'failed') {
             // Propagate failure if any of the input stores are async and currently failed.
             $computed.set({
               changing: false,
               error: inputs[i].error,
+              status: 'failed',
               state: 'failed'
             })
             return
           }
-          if (inputs[i]?.state === 'ready') {
+          if (inputs[i]?.status === 'ready') {
             inputs[i] = inputs[i].value
           }
         }
@@ -57,6 +58,7 @@ let computedAsyncStore = (stores, cb, cascade) => {
                 // Prevent a stale set
                 $computed.set({
                   changing: false,
+                  status: 'ready',
                   state: 'ready',
                   value
                 })
@@ -68,6 +70,7 @@ let computedAsyncStore = (stores, cb, cascade) => {
                 $computed.set({
                   changing: false,
                   error,
+                  status: 'failed',
                   state: 'failed'
                 })
               }
